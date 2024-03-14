@@ -39,7 +39,7 @@
 #ifndef UWOPTICALSTATS_PHY_H
 #define UWOPTICALSTATS_PHY_H
 
-#include <bpsk.h>
+#include <uwoptical-phy.h>
 
 #include "clmsg-stats.h"
 #include <phymac-clmsg.h>
@@ -116,7 +116,7 @@ public:
 	ChannelStates channel_state {NOT_DEFINED}; /** used by UwHMMOptical */
 };
 
-class UwOpticalStatsPhy : public MPhy_Bpsk
+class UwOpticalStatsPhy : public UwOpticalPhy
 {
 
 public:
@@ -128,7 +128,7 @@ public:
 	/**
 	 * Destructor of UwMultiPhy class.
 	 */
-	virtual ~UwOpticalStatsPhy() {}
+	virtual ~UwOpticalStatsPhy() {};
 
 	/**
 	 * TCL command interpreter. It implements the following OTcl methods:
@@ -145,15 +145,14 @@ public:
 	* Update the stats before sending them through crosslayer message
 	*/
 	virtual void updateInstantaneousStats();
+	/*
+	* Function used to bind the Threshold value inputted from TCL
+	*/
+	inline virtual void setThreshold(int threshold) {this->threshold = threshold;};
 
 	virtual void startRx(Packet *p);
 
-	virtual double getSNRdB(Packet *p);
-
 	virtual void endRx(Packet *p);
-
-	virtual double getNoisePower(Packet *p);
-
 	/**
 	* recv syncronous cross layer messages to require an operation from another module
 	*
@@ -162,35 +161,8 @@ public:
 	*/
 	virtual int recvSyncClMsg(ClMessage* m);
 
-protected:
-	virtual double lookUpLightNoiseE(double depth);
-
-	virtual double linearInterpolator(
-			double x, double x1, double y1, double x2, double y2);
-
-	/**
-	 * Inizialize LUT of c_variable values
-	*/
-	virtual void initializeLUT();
-
-	double getVarTemperature(Packet *p);
-	bool use_woss_; /**< Flag to set whether woss is employed*/
-
-	// Variables
 private:
-	// Variables
-	double Id; // dark current
-	double Il; // light current it can be approximated to the short circuit
-			   // current
-	double R; // shunt resistance
-	double S; // sensitivity
-	double T; // temperature (K)
-	double Ar_; // receiver area [m^2]
-	string lut_file_name_; // LUT file name
-	char lut_token_separator_; //
-	DepthMap lut_map; /**< Lookup table map of the solar noise versus the depth*/
-	bool variable_temperature_; /**< Flag to set whether the temperature is
-								   costant or varialbe with the depth*/
+	int threshold; //Threshold for some purpose
 };
 
 #endif /* UWOPTICALSTATS_PHY_H  */

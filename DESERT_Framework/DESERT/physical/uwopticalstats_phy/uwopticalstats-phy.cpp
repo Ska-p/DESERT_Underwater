@@ -42,8 +42,6 @@
 #include "uwstats-utilities.h"
 #include <float.h>
 
-const double K = 1.38 * 1.E-23; // Boltzmann constant
-const double q = 1.6 * 1.E-19; // electronic charge
 
 UwOpticalStats::UwOpticalStats()
 	:
@@ -105,63 +103,28 @@ public:
 } class_module_opticalstats;
 
 UwOpticalStatsPhy::UwOpticalStatsPhy()
-	: lut_file_name_("")
-	, lut_token_separator_('\t')
-	, use_woss_(false)
-	, variable_temperature_(false)
+	: threshold(0)
 {
-	if (!MPhy_Bpsk::initialized) {
-		MPhy_Bpsk::modid =
-				MPhy::registerModulationType(OPTICAL_MODULATION_TYPE);
-		MPhy_Bpsk::initialized = true;
-	}
-	MPhy_Bpsk();
-	bind("Id_", &Id);
-	bind("Il_", &Il);
-	bind("R_", &R);
-	bind("S_", &S);
-	bind("T_", &T);
-	bind("Ar_", &Ar_);
-	// Pointer for stats
+
+	UwOpticalPhy();
+	bind("Threshold_", &threshold);
 	stats_ptr = new UwOpticalStats();
 }
 
 int
 UwOpticalStatsPhy::command(int argc, const char *const *argv)
 {
-	if (argc == 2) {
-		if (strcasecmp(argv[1], "useLUT") == 0) {
-			initializeLUT();
-			return TCL_OK;
-		} else if (strcasecmp(argv[1], "useWOSS") == 0) {
-			use_woss_ = true;
-			((UwOpticalMPropagation *) propagation_)->setWoss(use_woss_);
-			return TCL_OK;
-		} else if (strcasecmp(argv[1], "setVariableTemperature") == 0) {
-			variable_temperature_ = true;
-			return TCL_OK;
-		}
-	} else if (argc == 3) {
-		if (strcasecmp(argv[1], "setLUTFileName") == 0) {
-			string tmp_ = ((char *) argv[2]);
-			if (tmp_.size() == 0) {
-				fprintf(stderr, "Empty string for the file name");
-				return TCL_ERROR;
-			}
-			lut_file_name_ = tmp_;
-			return TCL_OK;
-		} else if (strcasecmp(argv[1], "setLUTSeparator") == 0) {
-			string tmp_ = ((char *) argv[2]);
-			if (tmp_.size() == 0) {
-				fprintf(stderr, "Empty char for the file name");
-				return TCL_ERROR;
-			}
-			lut_token_separator_ = tmp_.at(0);
+	if (argc == 1) {
+		if (strcasecmp(argv[1], "setThreshold") == 0) {
+			int threshold_ = std::stoi(argv[1]);
+			setThreshold(threshold_);
 			return TCL_OK;
 		}
 	}
-	return MPhy_Bpsk::command(argc, argv);
+	return UwOpticalPhy::command(argc, argv);
 }
+
+// sendSync -> 
 
 void 
 UwOpticalStatsPhy::updateInstantaneousStats()
@@ -178,7 +141,6 @@ UwOpticalStatsPhy::updateInstantaneousStats()
 	ph->srcAntenna = getTxAntenna(temp);
 	ph->srcPosition = getPosition();
 	assert(ph->srcSpectralMask);
-
 
 	(dynamic_cast<UwOpticalStats*>(stats_ptr))->instant_noise_power = getNoisePower(temp);
 	Packet::free(temp);
@@ -215,58 +177,9 @@ UwOpticalStatsPhy::startRx(Packet *p)
 	}
 }
 
-double
-UwOpticalStatsPhy::getSNRdB(Packet *p)
-{
-	hdr_MPhy *ph = HDR_MPHY(p);
-	double snr_linear = pow((S * ph->Pr), 2) / ph->Pn;
-	return snr_linear ? 10 * log10(snr_linear) : -DBL_MAX;
-}
-
-double
-UwOpticalStatsPhy::getVarTemperature(Packet *p)
-{
-	hdr_MPhy *ph = HDR_MPHY(p);
-	Position *dest = ph->dstPosition;
-	assert(dest);
-	double depth = use_woss_ ? -dest->getAltitude() : -dest->getZ();
-	return ((UwOpticalMPropagation *) propagation_)->getTemperature(depth);
-}
-
-double
-UwOpticalStatsPhy::getNoisePower(Packet *p)
-{
-	hdr_MPhy *ph = HDR_MPHY(p);
-	Position *dest = ph->dstPosition;
-	assert(dest);
-	double depth = use_woss_ ? -dest->getAltitude() : -dest->getZ();
-	double lut_value = lut_map.empty() ? 0 : lookUpLightNoiseE(depth);
-	double t = variable_temperature_ ? getVarTemperature(p) : T;
-	double il = (Il == IL_ILLEGAL ? S * ph->Pr : Il);
-	t = t > NOT_VARIABLE_TEMPERATURE ? t : T;
-	double circuit_noise = 2 * q * (Id + il) * ph->srcSpectralMask->getBandwidth() + 
-			(4 * K * t * ph->srcSpectralMask->getBandwidth()) / R;
-	return circuit_noise + pow(lut_value * Ar_ * S, 2); // right now returns 0, due to not bias
-										// the snr calculation with unexpected
-										// values
-}
-
+// Test con TCl per corsslayer communication
 int UwOpticalStatsPhy::recvSyncClMsg(ClMessage* m)
 {
-
-	if (m->type() == CLMSG_UWPHY_LOSTPKT)
-	{	
-		// ????????????????????????????????
-		int tot_pkts_lost = getDroppedPktsDeaf() + getDroppedPktsInterf() 
-								+ getDroppedPktsNoise() + getDroppedPktsTxPending()
-									+ getDroppedPktsWrongModId();
-
-		int lost_packet = ((ClMsgUwPhyGetLostPkts*)m)->isControl() ? 1 : tot_pkts_lost;
-			// ?????????????????????????????????????????????
-			// getTot_CtrlPkts_lost() : getTot_pkts_lost();
-		((ClMsgUwPhyGetLostPkts*)m)->setLostPkts(lost_packet);
-		return 0;
-	}
 	if (m->type() == CLMSG_STATS)
 	{
 		updateInstantaneousStats();
@@ -302,6 +215,7 @@ UwOpticalStatsPhy::endRx(Packet *p)
 							 << interference_power << endl;
 				}
 				// NEW PART
+				// soglia maggiore di un altra soglia settata da tcl
 				} else if (UwOpticalStatsPhy::getSNRdB(p) > UwOpticalStatsPhy::getAcquisitionThresholdDb()){
 					ch->error() = 0;
 				} 
@@ -322,68 +236,5 @@ UwOpticalStatsPhy::endRx(Packet *p)
 		}
 	} else {
 		dropPacket(p);
-	}
-}
-
-double
-UwOpticalStatsPhy::lookUpLightNoiseE(double depth)
-{
-	// TODO: search noise Energy in the lookup table
-	DepthMap::iterator it = lut_map.lower_bound(depth);
-	if (it != lut_map.end() && it->first == depth) {
-		if (debug_)
-			std::cout << depth << " " << it->first << " " << it->second
-					  << std::endl;
-		return it->second;
-	}
-	if (it == lut_map.end() || it == lut_map.begin()) {
-		if (debug_)
-			std::cout << depth << " Nothing returned depth = " << depth
-					  << std::endl;
-
-		return NOT_FOUND_VALUE;
-	}
-	DepthMap::iterator u_it = it;
-	it--;
-	if (debug_)
-		std::cout << depth << " " << it->first << " " << it->second << " "
-				  << u_it->first << " " << u_it->second << std::endl;
-	return linearInterpolator(
-			depth, it->first, it->second, u_it->first, u_it->second);
-}
-
-double
-UwOpticalStatsPhy::linearInterpolator(
-		double x, double x1, double y1, double x2, double y2)
-{
-	assert(x1 != x2);
-	double m = (y1 - y2) / (x1 - x2);
-	double q = y1 - m * x1;
-	return m * x + q;
-}
-
-void
-UwOpticalStatsPhy::initializeLUT()
-{
-	ifstream input_file_;
-	string line_;
-	input_file_.open(lut_file_name_.c_str());
-	if (input_file_.is_open()) {
-		// skip first 2 lines
-		for (int i = 0; i < 2; ++i) {
-			std::getline(input_file_, line_);
-		}
-		double d;
-		double n;
-		while (std::getline(input_file_, line_)) {
-			::std::stringstream line_stream(line_);
-			line_stream >> d;
-			line_stream.ignore(256, lut_token_separator_);
-			line_stream >> n;
-			lut_map[d] = n;
-		}
-		input_file_.close();
-	} else {
-		cerr << "Impossible to open file " << lut_file_name_ << endl;
 	}
 }
