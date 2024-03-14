@@ -380,22 +380,28 @@ UnderwaterPhysical::startRx(Packet *p)
 
 void
 UnderwaterPhysical::endRx(Packet *p){
-	hdr_cmn *ch = HDR_CMN(p);
+	// Save headers in struct
+	hdr_cmn *ch = HDR_CMN(p); // What is ch?
 	hdr_MPhy *ph = HDR_MPHY(p);
 	hdr_mac *mach = HDR_MAC(p);
 	counter interferent_pkts;
 
 	static int mac_addr = -1;
 
+	// Message variable
 	ClMsgPhy2MacAddr msg;
 	sendSyncClMsg(&msg);
 	mac_addr = msg.getAddr();
 
+	// If there are packets received
 	if (PktRx != 0) {
 		if (PktRx == p) {
+			// Packet error rate
 			double per_ni;
 			int nbits = ch->size() * 8;
+			// Random number
 			double x = RNG::defaultrng()->uniform_double();
+			// Error variables
 			bool error_n = 0; // x <= per_n;
 			bool error_ni = 0;
 			double interference_power = 0;

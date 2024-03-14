@@ -78,6 +78,7 @@ SUBDIRS = m4 \
     physical/uwahoimodem \
     physical/uwmodamodem \
     physical/uwoptical_phy \
+    physical/uwopticalstats_phy \ 
     physical/uwopticalbeampattern \
     physical/uw-al \
     physical/uw-al/packer_common \
