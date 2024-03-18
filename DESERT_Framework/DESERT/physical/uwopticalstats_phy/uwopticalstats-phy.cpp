@@ -87,25 +87,23 @@ UwOpticalStats::clone() const
 	return new UwOpticalStats( *this );
 }
 
-
 static class UwOpticalStatsPhyClass : public TclClass
 {
-public:
-	UwOpticalStatsPhyClass()
-		: TclClass("Module/UW/OPTICAL/STATSPHY")
-	{
-	}
-	TclObject *
-	create(int, const char *const *)
-	{
-		return (new UwOpticalStatsPhy());
-	}
+	public:
+		UwOpticalStatsPhyClass()
+			: TclClass("Module/UW/OPTICAL/STATSPHY")
+		{
+		}
+		TclObject *
+		create(int, const char *const *)
+		{
+			return (new UwOpticalStatsPhy());
+		}
 } class_module_opticalstats;
 
 UwOpticalStatsPhy::UwOpticalStatsPhy()
 	: threshold(0)
 {
-
 	UwOpticalPhy();
 	bind("Threshold_", &threshold);
 	stats_ptr = new UwOpticalStats();
@@ -114,17 +112,8 @@ UwOpticalStatsPhy::UwOpticalStatsPhy()
 int
 UwOpticalStatsPhy::command(int argc, const char *const *argv)
 {
-	if (argc == 1) {
-		if (strcasecmp(argv[1], "setThreshold") == 0) {
-			int threshold_ = std::stoi(argv[1]);
-			setThreshold(threshold_);
-			return TCL_OK;
-		}
-	}
 	return UwOpticalPhy::command(argc, argv);
 }
-
-// sendSync -> 
 
 void 
 UwOpticalStatsPhy::updateInstantaneousStats()
@@ -142,8 +131,20 @@ UwOpticalStatsPhy::updateInstantaneousStats()
 	ph->srcPosition = getPosition();
 	assert(ph->srcSpectralMask);
 
-	(dynamic_cast<UwOpticalStats*>(stats_ptr))->instant_noise_power = getNoisePower(temp);
+	(dynamic_cast<UwOpticalStats*>(stats_ptr))->instant_noise_power = UwOpticalPhy::getNoisePower(temp);
 	Packet::free(temp);
+}
+
+// Test con TCl per crosslayer communication
+int UwOpticalStatsPhy::recvSyncClMsg(ClMessage* m)
+{
+	if (m->type() == CLMSG_STATS)
+	{
+		updateInstantaneousStats();
+		(dynamic_cast<ClMsgStats*>(m))->setStats(stats_ptr);
+		return 0;
+	}
+	return MPhy_Bpsk::recvSyncClMsg(m);
 }
 
 void
@@ -175,18 +176,6 @@ UwOpticalStatsPhy::startRx(Packet *p)
 					"PktRx = "
 				 << PktRx << ", pending = " << txPending << endl;
 	}
-}
-
-// Test con TCl per corsslayer communication
-int UwOpticalStatsPhy::recvSyncClMsg(ClMessage* m)
-{
-	if (m->type() == CLMSG_STATS)
-	{
-		updateInstantaneousStats();
-		(dynamic_cast<ClMsgStats*>(m))->setStats(stats_ptr);
-		return 0;
-	}
-	return MPhy_Bpsk::recvSyncClMsg(m);
 }
 
 void

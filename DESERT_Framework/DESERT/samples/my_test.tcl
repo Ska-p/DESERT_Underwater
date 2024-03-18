@@ -115,6 +115,7 @@ set opt(atten_LUT)                 "../../dbs/optical_attenuation/lut_532nm/lut_
 set opt(cbr_period)                0.1
 set opt(pktsize)	               125
 set opt(rngstream)	               1
+set opt(threshold)                 10
 
 ###################################################
 # Multi stack controller signaling configuaration #
@@ -200,6 +201,7 @@ Module/UW/OPTICAL/STATSPHY   set R_                          $opt(shuntRes)
 Module/UW/OPTICAL/STATSPHY   set S_                          $opt(sensitivity)
 Module/UW/OPTICAL/STATSPHY   set T_                          $opt(temperatura)
 Module/UW/OPTICAL/STATSPHY   set Ar_                         $opt(rxArea)
+Module/UW/OPTICAL/STATSPHY   set Threshold                   $opt(threshold)
 Module/UW/OPTICAL/STATSPHY   set debug_                      0
 
 Module/UW/OPTICAL/Propagation set Ar_       $opt(rxArea)
@@ -440,6 +442,8 @@ proc finish {} {
     global ipr_sink ipr ipif udp cbr phy phy_data_sink
     global node_stats tmp_node_stats sink_stats tmp_sink_stats
     if ($opt(verbose)) {
+        puts "---------------------------------------------------------------------"
+        puts "Threshold value   : $opt(threshold)"
         puts "---------------------------------------------------------------------"
         puts "Simulation summary"
         puts "number of nodes  : $opt(nn)"
