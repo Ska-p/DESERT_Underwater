@@ -266,12 +266,14 @@ void UwMultiTrafficRangeCtr::manageCheckedLayer(int traffic, uint8_t destAdd, bo
 
 void UwMultiTrafficRangeCtr::manageBuffer(int traffic)
 {
+
   BufferTrafficFeature::iterator it_feat = buffer_feature_map.find(traffic);
   if (it_feat == buffer_feature_map.end()) {
     std::cout << "UwMultiTrafficControl::manageBuffer. ERROR. Buffer not "
               << "configured. Traffic " << traffic << std::endl;
     return;
   }
+  // Get a packet from the specific buffer
   Packet *p = getFromBuffer(traffic);
   if (p != NULL) {
     int l_id = getBestLowerLayer(traffic,p);
@@ -288,40 +290,60 @@ int UwMultiTrafficRangeCtr::getBestLowerLayer(int traffic, Packet *p)
 {
   if (debug_)
     std::cout << NOW << " UwMultiTrafficRangeCtr::getBestLowerLayer(" << traffic << ")" << std::endl;
+  // Finds the map containing the corresponding traffic
+  // DownTrafficMap <int, BehaviorMap>
   DownTrafficMap::iterator it = down_map.find(traffic); 
+  // If the map is found
   if (it != down_map.end()) {
+    // Find the statusMaps corresponding to traffic type
+    // StatusMap <int, check_status>
     StatusMap::iterator it_s = status.find(traffic);
+    // If such map does not existing, initialize it
     if (it_s == status.end()) {
       initStatus(traffic);
     }
-    if (status[traffic].status == RANGE_CNF_WAIT) {// I'm checking the range
+    // If it exists and is doing range checking, stop
+    if (status[traffic].status == RANGE_CNF_WAIT) {
+      // I'm checking the range
       if (debug_)
          std::cout << NOW << " UwMultiTrafficRangeCtr::getBestLowerLayer(" << traffic 
                    << ") status == RANGE_CNF_WAIT" << std::endl;
       return 0;
     }
+    // Get the BehaviourMap from the previously retrieved map
+    // BehaviorMap <int, BehaviorItem>
+    // BehaviorItem <int, int>
     BehaviorMap temp = it->second;
     BehaviorMap::iterator it_b = temp.begin();
+    // for every 
     for (; it_b!=temp.end(); ++it_b)
     {
+      // Get module id of the current BehaviourMap
       int module_id_tmp = it_b->second.first;
+      // Switch statement on the behaviouor of the current module
       switch (it_b->second.second)
       {
+        // We need to check the range
         case(CHECK_RANGE):
         {
           if (debug_)
             std::cout << NOW << " UwMultiTrafficRangeCtr::getBestLowerLayer(" << traffic << "): CHECK_RANGE" 
                       << "PROBING" << it_b->second.first << std::endl;
+          // NOT SO CLEAR
+          // if the current module id is equal to the last module id in the status map, add it
           if(status[traffic].module_ids.find(module_id_tmp)==status[traffic].module_ids.end())
             status[traffic].module_ids.insert(module_id_tmp);
+          // checkRange of traffic, module_Id, and the next_hop
           checkRange(traffic, it_b->second.first, HDR_CMN(p)->next_hop());
           break;
         }
+        // We know the link is robust
         case(ROBUST):
         {
           if (debug_)
             std::cout << NOW << " UwMultiTrafficRangeCtr::getBestLowerLayer(" << traffic << "):  ROBUST" 
                       << std::endl;
+          // set the status of the current module and traffic to Robust
           status[traffic].robust_id = module_id_tmp;
           break;
         }
@@ -332,6 +354,7 @@ int UwMultiTrafficRangeCtr::getBestLowerLayer(int traffic, Packet *p)
         }
       }
     }
+    // if the layer is IDLE and ROBUST return it as the BestLayer
     if (status[traffic].status == IDLE && status[traffic].robust_id)
       return status[traffic].robust_id;
   }
@@ -340,14 +363,18 @@ int UwMultiTrafficRangeCtr::getBestLowerLayer(int traffic, Packet *p)
 
 void UwMultiTrafficRangeCtr::checkRange(int traffic, int module_id, uint8_t destAdd) 
 {
+  // find the status of the current traffic
   StatusMap::iterator it_s = status.find(traffic);
   if (it_s == status.end()) {
     initStatus(traffic);
   }
+  // If we are already checking the range print it
   if(status[traffic].status == RANGE_CNF_WAIT){//already checking 
     if (debug_)
       std::cout << NOW << " UwMultiTrafficRangeCtr::checkRange ALREADY CHECKING" << endl;
   }
+  // Otherwise, set status to checking range
+  // create an iterator for the timer
   else {
     status[traffic].status = RANGE_CNF_WAIT;
     std::map<int, UwCheckRangeTimer*>::iterator it_t = timers.find(traffic);
@@ -360,6 +387,7 @@ void UwMultiTrafficRangeCtr::checkRange(int traffic, int module_id, uint8_t dest
       it_t->second->resched(check_to_period * (it_t->second->num_expires + 1));
     }
   }
+  // Setup packet structure
   Packet* p = Packet::alloc();
   hdr_cmn* ch = hdr_cmn::access(p);
   ch->ptype() = PT_MULTI_TR_PROBE;
@@ -374,6 +402,7 @@ void UwMultiTrafficRangeCtr::checkRange(int traffic, int module_id, uint8_t dest
   hdr_uwcbr *ah = HDR_UWCBR(p);
   ah->priority() = 1;
   incrSignalingCounter(traffic, tx_probe_cnt);
+  // send packet to lower layer at corresponding module
   sendDown(module_id, p);
   if (debug_)
   std::cout << NOW << " UwMultiTrafficRangeCtr(" << (int)iph->saddr() << ")::checkRange " 

@@ -59,6 +59,7 @@ enum TRAFFIC_STATES {
 };
 
 struct check_status {
+  // Perchè un set?
   std::set <int> module_ids;
   int status;
   int robust_id;

@@ -187,6 +187,7 @@ void UwMultiTrafficControl::recvFromUpperLayers(Packet *p)
   manageBuffer(traf_type);
 }
 
+// Insert the packet in the buffer while performing some checks
 void UwMultiTrafficControl::insertInBuffer(Packet *p, int traffic) 
 {
   BufferTrafficFeature::iterator it_feat = buffer_feature_map.find(traffic);
@@ -197,6 +198,7 @@ void UwMultiTrafficControl::insertInBuffer(Packet *p, int traffic)
     return;
   }
 
+  // Finds the down buffer based on the traffic type
   DownTrafficBuffer::iterator it = down_buffer.find(traffic);
   if (it != down_buffer.end()) {
     uint n_elem = it->second->size();
@@ -236,14 +238,18 @@ void UwMultiTrafficControl::insertInBuffer(Packet *p, int traffic)
 
 void UwMultiTrafficControl::manageBuffer(int traffic)
 {
+  // get buffer of specific traffic
   BufferTrafficFeature::iterator it_feat = buffer_feature_map.find(traffic);
   if (it_feat == buffer_feature_map.end()) {
     std::cout << "UwMultiTrafficControl::insertInBuffer. ERROR. Buffer not "
               << "configured. Traffic " << traffic << std::endl;
     return;
   }
+
+  // Finds the buffer corresponding to the specific traffic type
   DownTrafficBuffer::iterator it = down_buffer.find(traffic);
   if (it != down_buffer.end()) {
+    // if a buffer of the corresponding type is found then sendDown
     sendDown(getBestLowerLayer(traffic),removeFromBuffer(traffic),
         it_feat->second.getUpdatedDelay(NOW));
     if(debug_)
@@ -251,6 +257,7 @@ void UwMultiTrafficControl::manageBuffer(int traffic)
   }
 }
 
+// Removes packet to be sent form the Buffer
 Packet * UwMultiTrafficControl::removeFromBuffer(int traffic) 
 {
   Packet * p = NULL;

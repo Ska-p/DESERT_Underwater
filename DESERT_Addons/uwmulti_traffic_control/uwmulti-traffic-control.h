@@ -86,15 +86,17 @@ struct BufferType {
 };
 
 // DEFINE STATES
-
+// app_type -> intero cbr ( tipo di traffico )
+// module_id -> intero su tcl
 typedef std::map <int, int> UpTrafficMap; /**< app_type, module_id>*/
-typedef std::pair <int, int> BehaviorItem; /**< module_id, behavior>*/
-typedef std::map <int, BehaviorItem> BehaviorMap; /**< stack_id, behavior>*/
-typedef std::map <int, BehaviorMap> DownTrafficMap; /**< app_type, BehaviorMap*/
+
+typedef std::pair <int, int> BehaviorItem; /**< module_id, behavior>*/ // module_id -> probabile lower lauyer
+typedef std::map <int, BehaviorItem> BehaviorMap; /**< stack_id, behavior>*/ //stack_id -> is underneath stack
+typedef std::map <int, BehaviorMap> DownTrafficMap; /**< app_type, BehaviorMap*/ //
 typedef std::queue<Packet*> Buffer;
-typedef std::map <int, Buffer*> DownTrafficBuffer; /**< app_type, PacketQueue*/
+typedef std::map <int, Buffer*> DownTrafficBuffer; /**< app_type, PacketQueue*/ 
 /**traffic, buffer type*/    
-typedef std::map <int,BufferType> BufferTrafficFeature; 
+typedef std::map <int, BufferType> BufferTrafficFeature; 
 
 /**
  * Class used to represents the UwMultiTrafficControl layer of a node.
