@@ -10,13 +10,69 @@
 
 #include "uwmulti-traffic-control.h"
 
+class RlAgent {
+    private:
+        /*
+        * features -> map to contain the features for the RL agent
+        * weigths -> vector containing the value of the weights for a specific instance
+        */
+        std::map<std::string, float> features;
+        std::vector<float> weights;
+        
+    public:
+        /**
+         * Constructor of the RlAlgorithm class
+        */
+        RlAgent(): features(), weights() {};
+
+        /**
+         * Destructor of the RlAlgorithm class
+        */
+        ~RlAgent() {};
+
+        /**
+         * Function to update the weights of the RlAlgorithm
+         * 
+         * @param rewards array of rewards collected during communications
+         * @param reward instantaneous reward of a single pakcet
+         * 
+         * TODO -> Decide wether to use istantaneous reward or delayed
+         * 
+        */
+        void updateWeights(std::array<float, 10> rewards);
+
+        /**
+         * Function to compute the reward based on the condition of the received packet
+         * 
+         * @param p packet received during communication
+        */
+        float getInstantaneousReward(Packet* p);
+
+        /**
+         * Retrieves the current statistics of the corresponding module id, used afterwards
+         * in the RL algorithm to select the best transmission medium.
+         * 
+         * @param module_id physical layer module id
+        */
+        virtual void updateSourceNodeStats(int module_id);
+
+        /**
+         * Retrieves the current statistics of the corresponding module id, used afterwards
+         * in the RL algorithm to select the best transmission medium.
+         * 
+         * @param packet packet to be sent
+        */
+        virtual void updateDestinationNodeStats(Packet* p);        
+};
+        
+
 class UwMultiTrafficRl : public UwMultiTrafficControl {
 
     public:
         /**
          * Constructor of UwMultiTrafficRl class.
         */
-        UwMultiTrafficRl();
+        UwMultiTrafficRl() : phy_IDs() {};
 
         /**
          * Destructor of UwMultiTrafficRl class.
@@ -41,6 +97,13 @@ class UwMultiTrafficRl : public UwMultiTrafficControl {
          */
         virtual void recv(Packet* p, int idSrc);
 
+        /** 
+         * Discover the underlying PHY layers
+         */
+        virtual void discoverLowerLayers();
+
+        virtual int recvSyncClMsg(ClMessage* msg);
+
     protected:
         /** 
          * manage to tx a packet of traffic type
@@ -59,19 +122,22 @@ class UwMultiTrafficRl : public UwMultiTrafficControl {
          */
         virtual int getBestLowerLayer(int traffic, Packet *p = NULL);
 
-        /**
-         * Retrieves the current statistics of the corresponding module id, used afterwards
-         * in the RL algorithm to select the best transmission medium.
-         * 
-         * @param module_id physical layer module id
-        */
-        virtual void getCurrentStatistics(int module_id);
-
     private:
+        RlAgent q_learning;
+
+        std::vector<int> phy_IDs; // Structure to store the physical modules id of the node
+        int best_phy_layer; // best physical module id computed according to the algorithm
+       /**
+        * Function to initialize the layer at beginning.
+        * Perform a discovery of the connected physical layer and stores them in a data
+       */
+        void init();
+
         /**
          * Definition of timer class. When it expires, the RL algorithm updates the selected medium
          * for the transmission of the packets
         */
+
        class UwCheckMediumTimer : public TimerHandler {
             
             public:
@@ -80,9 +146,36 @@ class UwMultiTrafficRl : public UwMultiTrafficControl {
                 */
                 UwCheckMediumTimer(UwMultiTrafficRl *m);
                 /**
-                 * Destructor of UwReinforcementTimer
+                 * Destructor of UwCheckRangeTimer
                 */
                 ~UwCheckMediumTimer() {}
+
+            protected:
+                /**
+                 * Timer expire procedure: handles the medium selecton timeout
+                 * @param Event *e, pointer to the event that cause the expire
+                 */
+                virtual void expire(Event *e);
+                /*
+                 * Pointer to the module class where the timer is used
+                */
+                UwMultiTrafficRl* module; 
+       };
+        /**
+        * Definition of timer class. When it expires it triggers the RX to send a packet
+        * containing information abour the rewards collected during the exchange of information
+        */
+       class UwGetRewardTimer : public TimerHandler {
+            
+            public:
+                /**
+                 * Constructor of the UwGetRewardTimer class.
+                */
+                UwGetRewardTimer(UwMultiTrafficRl *m);
+                /**
+                 * Destructor of UwGetRewardTimer
+                */
+                ~UwGetRewardTimer() {}
 
             protected:
                 /**
