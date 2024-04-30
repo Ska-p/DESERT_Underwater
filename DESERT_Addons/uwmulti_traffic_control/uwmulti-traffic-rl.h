@@ -54,15 +54,13 @@ class RlAgent {
          * 
          * @param module_id physical layer module id
         */
-        virtual void updateSourceNodeStats(int module_id);
+        virtual void updateSourceNodeStats();
 
         /**
          * Retrieves the current statistics of the corresponding module id, used afterwards
          * in the RL algorithm to select the best transmission medium.
-         * 
-         * @param packet packet to be sent
         */
-        virtual void updateDestinationNodeStats(Packet* p);        
+        virtual void updateDestinationNodeStats();        
 };
         
 
@@ -88,14 +86,14 @@ class UwMultiTrafficRl : public UwMultiTrafficControl {
          *
          * @return TCL_OK or TCL_ERROR whether the command has been dispatched successfully or not.
          */
-        virtual int command(int, const char*const*);
+        virtual int command(int argc, const char*const* argv);
 
         /** 
          * Handle a packet coming from upper layers
          * 
          * @param p pointer to the packet
          */
-        virtual void recv(Packet* p, int idSrc);
+        virtual void recv(Packet* p);
 
         /** 
          * Discover the underlying PHY layers
@@ -120,24 +118,24 @@ class UwMultiTrafficRl : public UwMultiTrafficControl {
          *
          * @return the layer id
          */
-        virtual int getBestLowerLayer(int traffic, Packet *p = NULL);
+        virtual int getBestLowerLayer(Packet *p = NULL);
 
     private:
         RlAgent q_learning;
 
         std::vector<int> phy_IDs; // Structure to store the physical modules id of the node
         int best_phy_layer; // best physical module id computed according to the algorithm
+        std::map<int, int> macTclIdLayerId;
        /**
         * Function to initialize the layer at beginning.
         * Perform a discovery of the connected physical layer and stores them in a data
        */
-        void init();
+        void initialize();
 
         /**
          * Definition of timer class. When it expires, the RL algorithm updates the selected medium
          * for the transmission of the packets
         */
-
        class UwCheckMediumTimer : public TimerHandler {
             
             public:
@@ -161,6 +159,7 @@ class UwMultiTrafficRl : public UwMultiTrafficControl {
                 */
                 UwMultiTrafficRl* module; 
        };
+
         /**
         * Definition of timer class. When it expires it triggers the RX to send a packet
         * containing information abour the rewards collected during the exchange of information
