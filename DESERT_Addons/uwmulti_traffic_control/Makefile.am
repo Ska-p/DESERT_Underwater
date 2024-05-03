@@ -31,7 +31,7 @@ AM_CXXFLAGS = -Wall -ggdb3
 
 lib_LTLIBRARIES = libuwmulti_traffic_control.la
 
-libuwmulti_traffic_control_la_SOURCES = initlib.cc uwmulti-traffic-control.cc uwmulti-traffic-control.h uwmulti-multiphy-controller.cpp uwmulti-multiphy-controller.h uwmulti-traffic-range-crt.cc uwmulti-traffic-range-crt.h
+libuwmulti_traffic_control_la_SOURCES = initlib.cc uwmulti-traffic-rl.cc uwmulti-traffic-rl.h uwmulti-traffic-control.cc uwmulti-traffic-control.h uwmulti-multiphy-controller.cpp uwmulti-multiphy-controller.h uwmulti-traffic-range-crt.cc uwmulti-traffic-range-crt.h
 
 libuwmulti_traffic_control_la_CPPFLAGS = @NS_CPPFLAGS@ @NSMIRACLE_CPPFLAGS@ @DESERT_CPPFLAGS@
 libuwmulti_traffic_control_la_LDFLAGS =  @NS_LDFLAGS@ @NSMIRACLE_LDFLAGS@ @DESERT_LDFLAGS@ @DESERT_LDFLAGS_BUILD@

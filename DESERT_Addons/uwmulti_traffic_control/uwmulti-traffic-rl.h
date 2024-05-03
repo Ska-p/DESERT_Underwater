@@ -122,10 +122,11 @@ class UwMultiTrafficRl : public UwMultiTrafficControl {
 
     private:
         RlAgent q_learning;
-
+        int debug_;
         std::vector<int> phy_IDs; // Structure to store the physical modules id of the node
         int best_phy_layer; // best physical module id computed according to the algorithm
-        std::map<int, int> macTclIdLayerId;
+        std::map<int, int> macTclIdLayerId; // Structure to store the phy module tcl id of the node
+        
        /**
         * Function to initialize the layer at beginning.
         * Perform a discovery of the connected physical layer and stores them in a data

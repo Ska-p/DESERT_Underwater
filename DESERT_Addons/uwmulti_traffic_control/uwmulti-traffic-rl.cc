@@ -16,6 +16,34 @@
 #include <uwip-module.h>
 #include <clmsg-stats.h>
 
+/**
+ * Class that represents the binding with the tcl configuration script
+ */
+static class UwMultiTrafficRlClass : public TclClass
+{
+public:
+  /**
+   * Constructor of the class
+   */
+  UwMultiTrafficRlClass() : TclClass("Module/UW/MULTITRAFFIC_RL") {}
+  /**
+   * Creates the TCL object needed for the tcl language interpretation
+   * @return Pointer to an TclObject
+   */
+  virtual TclObject* create(int, const char*const*)
+  {
+    return (new UwMultiTrafficRl);
+  }
+} class_rl_multitraffic;
+
+UwMultiTrafficRl::UwMultiTrafficRl()
+  :
+  UwMultiTrafficControl(),
+  debug_(0)
+{
+	bind("debug_", &debug_);
+}
+
 void 
 UwMultiTrafficRl::recv(Packet* p){
     hdr_uwip *uwip = HDR_UWIP(p);
@@ -50,7 +78,15 @@ UwMultiTrafficRl::recvSyncClMsg(ClMessage* msg) {
 
 int 
 UwMultiTrafficRl::command(int argc, const char*const* argv){
+    Tcl& tcl = Tcl::instance();
 
+  if (argc == 2) {
+
+    if(strcasecmp(argv[1], "initialize") == 0) {
+      this->initialize();
+      return TCL_OK;
+    }
+  }
 }
 
 void 
@@ -66,10 +102,6 @@ UwMultiTrafficRl::discoverLowerLayers() {
         msg.printReplyData();
     }
 
-    // Scorri attraverso i layer trovati e aggiungi l'id al vettore
-    // for each layer
-    //      phy_IDs.add(phy_layer[i].id)
-    
     for (DBIt it=phys.begin(); it!=phys.end(); it++){
         int id = it->first;
         int layerId = it->second.getId();
