@@ -44,8 +44,10 @@ UwMultiTrafficRl::UwMultiTrafficRl()
 	bind("debug_", &debug_);
 }
 
+/*
 void 
 UwMultiTrafficRl::recv(Packet* p){
+    
     hdr_uwip *uwip = HDR_UWIP(p);
     hdr_cmn *ch = HDR_CMN(p);
 
@@ -65,6 +67,7 @@ UwMultiTrafficRl::recv(Packet* p){
         // sendup
     }
 }
+*/
 
 int 
 UwMultiTrafficRl::recvSyncClMsg(ClMessage* msg) {
@@ -78,7 +81,7 @@ UwMultiTrafficRl::recvSyncClMsg(ClMessage* msg) {
 
 int 
 UwMultiTrafficRl::command(int argc, const char*const* argv){
-    Tcl& tcl = Tcl::instance();
+  //Tcl& tcl = Tcl::instance();
 
   if (argc == 2) {
 
@@ -87,6 +90,8 @@ UwMultiTrafficRl::command(int argc, const char*const* argv){
       return TCL_OK;
     }
   }
+  
+  return UwMultiTrafficControl::command(argc, argv);     
 }
 
 void 
@@ -121,7 +126,7 @@ UwMultiTrafficRl::discoverLowerLayers() {
 
 void 
 UwMultiTrafficRl::initialize(){
-    RlAgent* q_learning = new RlAgent();
+    // RlAgent* q_learning = new RlAgent();
     // Discover lower layers in init method or via a dedicated function
     // discoverLowerLayers();
 

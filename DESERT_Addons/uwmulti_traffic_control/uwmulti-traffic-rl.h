@@ -70,7 +70,7 @@ class UwMultiTrafficRl : public UwMultiTrafficControl {
         /**
          * Constructor of UwMultiTrafficRl class.
         */
-        UwMultiTrafficRl() : phy_IDs() {};
+        UwMultiTrafficRl();
 
         /**
          * Destructor of UwMultiTrafficRl class.
@@ -93,7 +93,7 @@ class UwMultiTrafficRl : public UwMultiTrafficControl {
          * 
          * @param p pointer to the packet
          */
-        virtual void recv(Packet* p);
+        //virtual void recv(Packet* p);
 
         /** 
          * Discover the underlying PHY layers
@@ -108,7 +108,7 @@ class UwMultiTrafficRl : public UwMultiTrafficControl {
          *
          * @param traffic application traffic id
          */
-        virtual void manageBuffer(int traffic);
+        //virtual void manageBuffer(int traffic);
 
         /** 
          * Return the Best Lower Layer id where to forward the packet of <i>traffic</i> type.
@@ -118,10 +118,10 @@ class UwMultiTrafficRl : public UwMultiTrafficControl {
          *
          * @return the layer id
          */
-        virtual int getBestLowerLayer(Packet *p = NULL);
+        //virtual int getBestLowerLayer(Packet *p = NULL);
 
     private:
-        RlAgent q_learning;
+        //RlAgent q_learning;
         int debug_;
         std::vector<int> phy_IDs; // Structure to store the physical modules id of the node
         int best_phy_layer; // best physical module id computed according to the algorithm
