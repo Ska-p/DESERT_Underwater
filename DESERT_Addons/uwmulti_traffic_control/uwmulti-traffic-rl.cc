@@ -81,16 +81,12 @@ UwMultiTrafficRl::recvSyncClMsg(ClMessage* msg) {
 
 int 
 UwMultiTrafficRl::command(int argc, const char*const* argv){
-  //Tcl& tcl = Tcl::instance();
+  Tcl& tcl = Tcl::instance();
 
-  if (argc == 2) {
-
-    if(strcasecmp(argv[1], "initialize") == 0) {
-      this->initialize();
-      return TCL_OK;
-    }
+  if(strcasecmp(argv[1], "initialize") == 0) {
+    this->initialize();
+    return TCL_OK;
   }
-  
   return UwMultiTrafficControl::command(argc, argv);     
 }
 
@@ -100,13 +96,20 @@ UwMultiTrafficRl::discoverLowerLayers() {
     msg.addSenderData((const PlugIn*) this, getLayer(), getId(), getStackId(), name() , getTag());
     sendSyncClMsg(&msg);
     
-    // DiscoveryStorage phy_layer_storage = msg.findTag("PHY");
-    DiscoveryStorage phys = msg.copyStorage();
-    
-    if (debug_ >= 2) {
-        msg.printReplyData();
-    }
+    DiscoveryStorage phy_layer_storage = msg.findTag("PHY1");
+    DiscoveryData phy_layer = (*phy_layer_storage.begin()).second;
+	  int phy_id = phy_layer.getId();
 
+    std::cout << "UwMultiTrafficRl::initialize::Id(" << phy_layer.getId() << ")" << std::endl
+                                                << "TclName: " << phy_layer.getTclName() << " " << std::endl
+                                                << "Module Layer Id: " << phy_layer.getLayer() << ")" << std::endl;
+    
+    phy_layer_storage = msg.findTag("PHY2");
+    phy_layer = (*phy_layer_storage.begin()).second;
+    std::cout << "UwMultiTrafficRl::initialize::Id(" << phy_layer.getId() << ")" << std::endl
+                                                << "TclName: " << phy_layer.getTclName() << " " << std::endl
+                                                << "Module Layer Id: " << phy_layer.getLayer() << ")" << std::endl;
+    /*
     for (DBIt it=phys.begin(); it!=phys.end(); it++){
         int id = it->first;
         int layerId = it->second.getId();
@@ -122,12 +125,13 @@ UwMultiTrafficRl::discoverLowerLayers() {
             << "::layerId(" << layerId << ")" << std::endl;
         }   
     }
+    */
 }
 
 void 
 UwMultiTrafficRl::initialize(){
     // RlAgent* q_learning = new RlAgent();
     // Discover lower layers in init method or via a dedicated function
-    // discoverLowerLayers();
+    discoverLowerLayers();
 
 }
